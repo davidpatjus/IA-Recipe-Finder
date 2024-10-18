@@ -12,6 +12,12 @@ const FavoritesPage = () => {
             <img src="/404.png" className="h-3/4" alt="404 error" />
           </div>
         )}
+
+        {fav && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+
+          </div>
+        )}
       </div>
     </div>
   )

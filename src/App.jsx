@@ -6,7 +6,7 @@ import { Route, Routes } from "react-router-dom"
 function App() {
 
   return (
-    <body className="flex">
+    <div className="flex">
       
       <SideBar />
       
@@ -15,7 +15,7 @@ function App() {
         <Route path="/favorites" element={<FavoritesPage />} />
       </Routes>
           
-    </body>
+    </div>
   )
 }
 
