@@ -5,6 +5,8 @@ import Image from "next/image";
 export interface Recipe {
   label: string;
   image: string;
+  source: string;
+  url: string;
   yield: number;
   cuisineType: string[];
   mealType: string[];

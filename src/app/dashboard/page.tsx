@@ -1,26 +1,18 @@
 "use client"
 import { useEffect, useState } from "react";
 import { Search, Coffee, Utensils, Moon, ChevronRight } from "lucide-react";
-import RecipeCard from "../components/RecipeCard";
 import { useUser } from "@clerk/nextjs";
+import { Recipe } from "../components/RecipeCard";
+import RecipeCard from "../components/RecipeCard";
 
-interface Recipe {
-  recipe: {
-    label: string;
-    image: string;
-    source: string;
-    url: string;
-    yield: number;
-    cuisineType: string[];
-    mealType: string[];
-    healthLabels: string[];
-  };
+interface RecipeList {
+  recipe: Recipe;
 }
 
 interface CategoryRecipes {
-  breakfast: Recipe[];
-  lunch: Recipe[];
-  dinner: Recipe[];
+  breakfast: RecipeList[];
+  lunch: RecipeList[];
+  dinner: RecipeList[];
 }
 
 const categoryIcons: Record<keyof CategoryRecipes, typeof Coffee> = {
@@ -45,7 +37,7 @@ const SkeletonLoader = () => (
 );
 
 const Dashboard = () => {
-  const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [recipes, setRecipes] = useState<RecipeList[]>([]);
   const [categoryRecipes, setCategoryRecipes] = useState<CategoryRecipes>({
     breakfast: [],
     lunch: [],
@@ -64,9 +56,9 @@ const Dashboard = () => {
   const fetchRecipes = async (searchQuery: string) => {
     setLoading(true);
     setRecipes([]);
+    const position = await getLocation();
+    console.log(position);
     try {
-      const position = await getLocation();
-      console.log(position);
       const res = await fetch(
         `https://api.edamam.com/api/recipes/v2?app_id=${process.env.NEXT_PUBLIC_EDAMAM_ID}&app_key=${process.env.NEXT_PUBLIC_EDAMAM_KEY}&q=${searchQuery}&type=public`
       );
