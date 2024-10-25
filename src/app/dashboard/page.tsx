@@ -4,14 +4,26 @@ import { Search, Coffee, Utensils, Moon, ChevronRight } from "lucide-react";
 import RecipeCard from "../components/RecipeCard";
 import { useUser } from "@clerk/nextjs";
 
-const getLocation = async () => {
-  return new Promise((resolve, reject) => {
-    navigator.geolocation.getCurrentPosition(resolve, reject);
-  });
-};
+interface Recipe {
+  recipe: {
+    label: string;
+    image: string;
+    source: string;
+    url: string;
+    yield: number;
+    cuisineType: string[];
+    mealType: string[];
+    healthLabels: string[];
+  };
+}
 
+interface CategoryRecipes {
+  breakfast: Recipe[];
+  lunch: Recipe[];
+  dinner: Recipe[];
+}
 
-const categoryIcons = {
+const categoryIcons: Record<keyof CategoryRecipes, typeof Coffee> = {
   breakfast: Coffee,
   lunch: Utensils,
   dinner: Moon,
@@ -33,15 +45,21 @@ const SkeletonLoader = () => (
 );
 
 const Dashboard = () => {
-  const [recipes, setRecipes] = useState([]);
-  const [categoryRecipes, setCategoryRecipes] = useState({
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [categoryRecipes, setCategoryRecipes] = useState<CategoryRecipes>({
     breakfast: [],
     lunch: [],
     dinner: [],
   });
   const [loading, setLoading] = useState(true);
-  const [activeCategory, setActiveCategory] = useState("breakfast");
+  const [activeCategory, setActiveCategory] = useState<keyof CategoryRecipes>("breakfast");
   const { user } = useUser();
+
+  const getLocation = async () => {
+  return new Promise((resolve, reject) => {
+    navigator.geolocation.getCurrentPosition(resolve, reject);
+  });
+};
   
   const fetchRecipes = async (searchQuery: string) => {
     setLoading(true);
@@ -55,8 +73,12 @@ const Dashboard = () => {
       const data = await res.json();
       console.log(data);
       setRecipes(data.hits);
-    } catch (error: any) {
-      console.error(error.message);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error("Error:", error.message);
+      } else {
+        console.error("Error desconocido", error);
+      }
     } finally {
       setLoading(false);
     }
@@ -69,8 +91,12 @@ const Dashboard = () => {
       );
       const data = await res.json();
       setCategoryRecipes((prev) => ({ ...prev, [category]: data.hits }));
-    } catch (error: any) {
-      console.error(error.message);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error("Error:", error.message);
+      } else {
+        console.error("Error desconocido", error);
+      }
     }
   };
 
@@ -95,8 +121,12 @@ const Dashboard = () => {
          const data = await response.json();
          console.log(data)
    
-        } catch (error) {
-          console.log(error)
+        } catch (error: unknown) {
+          if (error instanceof Error) {
+            console.error("Error:", error.message);
+          } else {
+            console.error("Error desconocido", error);
+          }
         }
       }
     }
@@ -108,11 +138,14 @@ const Dashboard = () => {
     fetchCategoryRecipes("breakfast");
     fetchCategoryRecipes("lunch");
     fetchCategoryRecipes("dinner");
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleSearchRecipe = (e: any) => {
+  const handleSearchRecipe = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    fetchRecipes(e.target[0].value);
+    const form = e.target as HTMLFormElement;
+    const input = form.elements[0] as HTMLInputElement;
+    fetchRecipes(input.value);
   };
 
   return (
@@ -162,19 +195,20 @@ const Dashboard = () => {
           <h2 className="text-3xl font-bold text-green-800 mb-6">Recetas por Categoría</h2>
           <div className="flex space-x-4 mb-6 overflow-x-auto pb-2">
             {Object.keys(categoryRecipes).map((category) => {
-              const Icon = categoryIcons[category];
+              const cat = category as keyof CategoryRecipes;
+              const Icon = categoryIcons[cat];
               return (
                 <button
-                  key={category}
-                  onClick={() => setActiveCategory(category)}
+                  key={cat}
+                  onClick={() => setActiveCategory(cat)}
                   className={`flex items-center space-x-2 px-4 py-2 rounded-full transition-colors duration-200 ${
-                    activeCategory === category
+                    activeCategory === cat
                       ? "bg-green-500 text-white"
                       : "bg-white text-green-800 hover:bg-green-100"
                   }`}
                 >
                   <Icon size={20} />
-                  <span className="capitalize">{category}</span>
+                  <span className="capitalize">{cat}</span>
                 </button>
               );
             })}

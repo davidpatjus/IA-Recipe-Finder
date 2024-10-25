@@ -2,20 +2,29 @@ import { Heart, HeartPulse, Soup, ChefHat } from "lucide-react";
 import { useState } from "react";
 import Image from "next/image";
 
-const RecipeCard = ({ recipe }) => {
+export interface Recipe {
+  label: string;
+  image: string;
+  yield: number;
+  cuisineType: string[];
+  mealType: string[];
+  healthLabels: string[];
+}
+
+const RecipeCard: React.FC<{ recipe: Recipe }> = ({ recipe }) => {
   const [isImageLoaded, setIsImageLoaded] = useState(false);
   const [isFavorite, setIsFavorite] = useState(
     localStorage.getItem("favorites")?.includes(recipe.label)
   );
 
   const addRecipeToFavorites = () => {
-    let favorites = JSON.parse(localStorage.getItem("favorites")) || [];
+    let favorites = JSON.parse(localStorage.getItem("favorites") || "[]");
     const isRecipeAlreadyInFavorites = favorites.some(
-      (fav) => fav.label === recipe.label
+      (fav: { label: string; }) => fav.label === recipe.label
     );
 
     if (isRecipeAlreadyInFavorites) {
-      favorites = favorites.filter((fav) => fav.label !== recipe.label);
+      favorites = favorites.filter((fav: { label: string; }) => fav.label !== recipe.label);
       setIsFavorite(false);
     } else {
       favorites.push(recipe);

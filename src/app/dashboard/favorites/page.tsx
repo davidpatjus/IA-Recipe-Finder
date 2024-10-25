@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 
 const getFavoritesFromLocalStorage = () => {
-  return JSON.parse(localStorage.getItem("favorites")) || [];
+  return JSON.parse(localStorage.getItem("favorites") || "[]");
 };
 
 const FavoritesPage = () => {
