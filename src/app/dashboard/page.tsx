@@ -2,12 +2,14 @@
 import { useEffect, useState } from "react";
 import { Search, Coffee, Utensils, Moon, ChevronRight } from "lucide-react";
 import RecipeCard from "../components/RecipeCard";
+import { useUser } from "@clerk/nextjs";
 
 const getLocation = async () => {
   return new Promise((resolve, reject) => {
     navigator.geolocation.getCurrentPosition(resolve, reject);
   });
 };
+
 
 const categoryIcons = {
   breakfast: Coffee,
@@ -39,7 +41,8 @@ const Dashboard = () => {
   });
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState("breakfast");
-
+  const { user } = useUser();
+  
   const fetchRecipes = async (searchQuery: string) => {
     setLoading(true);
     setRecipes([]);
@@ -59,7 +62,7 @@ const Dashboard = () => {
     }
   };
 
-  const fetchCategoryRecipes = async (category) => {
+  const fetchCategoryRecipes = async (category: string) => {
     try {
       const res = await fetch(
         `https://api.edamam.com/api/recipes/v2?app_id=${process.env.NEXT_PUBLIC_EDAMAM_ID}&app_key=${process.env.NEXT_PUBLIC_EDAMAM_KEY}&q=${category}&type=public`
@@ -70,6 +73,35 @@ const Dashboard = () => {
       console.error(error.message);
     }
   };
+
+  useEffect(() => {
+    const getUserData = async () => {
+      if (user) {
+        try {
+         const response = await fetch('/api/FindOrCreateUser', {
+           method: 'POST',
+           headers: {
+             'Content-Type': 'application/json',
+           },
+           body: JSON.stringify({
+             userEmail: user.primaryEmailAddress?.emailAddress
+           }),
+         });
+   
+         if (!response.ok) {
+           throw new Error('Error en la petición')
+         }
+   
+         const data = await response.json();
+         console.log(data)
+   
+        } catch (error) {
+          console.log(error)
+        }
+      }
+    }
+    getUserData();
+  }, [user]);
 
   useEffect(() => {
     fetchRecipes("chicken");
