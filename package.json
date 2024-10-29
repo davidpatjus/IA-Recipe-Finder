@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@clerk/nextjs": "^5.7.5",
+    "@google/generative-ai": "^0.21.0",
     "@supabase/supabase-js": "^2.45.6",
     "drizzle-kit": "^0.26.2",
     "drizzle-orm": "^0.35.3",

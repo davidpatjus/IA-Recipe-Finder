@@ -11,24 +11,7 @@ const getFavoritesFromLocalStorage = () => {
 const FavoritesPage = () => {
   const [favorites, setFavorites] = useState([]);
 
-  const fetchChatbotResponse = async () => {
-    const response = await fetch('/api/chatbot', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            queryType: 'recetas', // ejemplo de tipo de consulta
-            query: '¿Tienes alguna receta baja en carbohidratos?',
-        }),
-    });
-
-    const data = await response.json();
-    console.log(data);
-};
-
 useEffect(() => {
-    fetchChatbotResponse();
     const favs = getFavoritesFromLocalStorage();
     setFavorites(favs);
   }, []);
