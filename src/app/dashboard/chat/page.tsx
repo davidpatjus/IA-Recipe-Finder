@@ -30,11 +30,18 @@ const icons = {
   personalizacion_alimenticia: User,
 };
 
+const MAX_RETRY_COUNT = 3; 
+const MAX_MESSAGE_LENGTH = 500; 
+const RETRY_DELAY_MS = 2000;
+const MAX_VISIBLE_LENGTH = 500;
+
 const ChatPage = () => {
   const [query, setQuery] = useState("");
   const [queryType, setQueryType] = useState<keyof typeof icons>("recetas");
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
+  const [isExpanded, setIsExpanded] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -46,10 +53,28 @@ const ChatPage = () => {
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!query.trim()) return;
+    if (query.length > MAX_MESSAGE_LENGTH) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          type: "bot",
+          content: `El mensaje es demasiado largo. Por favor, reduce a menos de ${MAX_MESSAGE_LENGTH} caracteres.`,
+        },
+      ]);
+      return;
+    }
 
-    setLoading(true);
     const userMessage: Message = { type: "user", content: query, queryType };
     setMessages((prev) => [...prev, userMessage]);
+    setQuery("");
+    await sendMessage(query, queryType);
+  };
+
+  const sendMessage = async (
+    message: string,
+    type: keyof typeof icons
+  ) => {
+    setLoading(true);
 
     try {
       const res = await fetch("/api/chatbot", {
@@ -57,29 +82,73 @@ const ChatPage = () => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ queryType, query }),
+        body: JSON.stringify({ queryType: type, query: message }),
       });
 
+      if (!res.ok) {
+        throw new Error(`Error: ${res.status}`);
+      }
+
       const data = await res.json();
-      const botMessage: Message = {
-        type: "bot",
-        content: data.content,
-        title: data.title,
-        additionalInfo: data.additionalInfo,
-        timestamp: data.timestamp,
-      };
-      setMessages((prev) => [...prev, botMessage]);
+      setMessages((prev) => [
+        ...prev,
+        {
+          type: "bot",
+          content: data.content,
+          title: data.title,
+          additionalInfo: data.additionalInfo,
+          timestamp: data.timestamp,
+        },
+      ]);
+      setRetryCount(0); 
     } catch (error) {
       console.error("Error al enviar la consulta:", error);
-      const errorMessage: Message = {
-        type: "bot",
-        content: "Lo siento, ha ocurrido un error al procesar tu consulta.",
-      };
-      setMessages((prev) => [...prev, errorMessage]);
+
+      if (retryCount < MAX_RETRY_COUNT) {
+        setTimeout(() => {
+          setRetryCount((prev) => prev + 1);
+          sendMessage(message, type); 
+        }, RETRY_DELAY_MS);
+      } else {
+        setMessages((prev) => [
+          ...prev,
+          {
+            type: "bot",
+            content:
+              "Lo siento, no hemos podido procesar tu consulta. Por favor, verifica tu conexión e inténtalo nuevamente más tarde.",
+          },
+        ]);
+        setRetryCount(0); 
+      }
     } finally {
       setLoading(false);
-      setQuery("");
     }
+  };
+
+  const renderMessageContent = (message: Message) => {
+    const isLongMessage = message.content.length > MAX_VISIBLE_LENGTH;
+
+    const toggleExpand = () => setIsExpanded(!isExpanded);
+
+    const displayedContent = isExpanded
+      ? message.content
+      : message.content.slice(0, MAX_VISIBLE_LENGTH) + "...";
+
+    return (
+      <>
+        <ReactMarkdown rehypePlugins={[rehypeRaw]}>
+          {displayedContent}
+        </ReactMarkdown>
+        {isLongMessage && (
+          <button
+            onClick={toggleExpand}
+            className="text-blue-500 text-sm underline mt-2"
+          >
+            {isExpanded ? "Ver menos" : "Ver más"}
+          </button>
+        )}
+      </>
+    );
   };
 
   return (
@@ -94,7 +163,7 @@ const ChatPage = () => {
         </p>
       </header>
 
-      <main className="flex-grow overflow-hidden relative">
+      <main className="flex-grow overflow-hidden relative bg-gradient-to-b from-green-100/60 to-white">
         <div className="absolute inset-0 overflow-y-auto p-6 space-y-4 pb-32 sm:pb-24">
           {messages.map((message, index) => (
             <motion.div
@@ -120,9 +189,7 @@ const ChatPage = () => {
                 </div>
               )}
               {message.type === "bot" ? (
-                <ReactMarkdown rehypePlugins={[rehypeRaw]}>
-                  {message.content}
-                </ReactMarkdown>
+                renderMessageContent(message)
               ) : (
                 <p className="text-green-800">{message.content}</p>
               )}
@@ -140,23 +207,6 @@ const ChatPage = () => {
           ))}
           <div ref={messagesEndRef} />
         </div>
-        <motion.div
-          className="absolute inset-0 pointer-events-none"
-          animate={{
-            backgroundPosition: ["0% 0%", "100% 100%"],
-          }}
-          transition={{
-            duration: 20,
-            ease: "linear",
-            repeat: Infinity,
-            repeatType: "reverse",
-          }}
-          style={{
-            backgroundImage:
-              'url("data:image/svg+xml,%3Csvg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"%3E%3Cpath d="M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z" fill="%23bef264" fill-opacity="0.1" fill-rule="evenodd"/%3E%3C/svg%3E")',
-            backgroundSize: "400px 400px",
-          }}
-        />
       </main>
 
       <footer className="bg-white border-t border-green-200 p-4 fixed bottom-14 sm:bottom-0 left-auto w-full sm:w-[calc(100%-12%)] md:w-[calc(100%-21%)] lg:w-[calc(100%-18%)] xl:w-[calc(100%-16%)] 2xl:w-[calc(100%-12%)]">
@@ -182,7 +232,7 @@ const ChatPage = () => {
               className="absolute right-2 top-1/2 transform -translate-y-1/2 text-green-500 hover:text-green-600 flex items-center space-x-1 focus:outline-none"
             >
               <span className="bg-green-100 rounded-full py-1 px-2 flex flex-row items-center gap-1">
-                {React.createElement(icons[queryType as keyof typeof icons], {
+                {React.createElement(icons[queryType], {
                   className: "w-5 h-5",
                 })}
                 <span className="hidden sm:block"> {queryType} </span>
@@ -199,7 +249,7 @@ const ChatPage = () => {
             ) : (
               <>
                 <span className="mr-2">Enviar</span>
-                <Send className="w-4 h-4" />
+                <Send className="w-5 h-5" />
               </>
             )}
           </button>

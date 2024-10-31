@@ -20,15 +20,17 @@ const DesktopSideBar = () => {
     <div className="p-4 md:p-8 bg-gradient-to-b from-green-100 to-white border-r min-h-screen w-24 md:w-64 hidden sm:block">
       <div className="flex flex-col gap-16 sticky top-10 left-0">
         <div className="w-full pb-6 border-b border-gray-300">
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="flex items-center space-x-2"
-          >
-            <ChefHat className="h-8 w-8 text-green-600" />
-            <span className="text-[14px] font-bold text-green-700">IA-RECIPE-FINDER</span>
-          </motion.div>
+          <Link href={"/"} >
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="flex items-center space-x-2"
+            >
+              <ChefHat className="h-8 w-8 text-green-600" />
+              <span className="text-[14px] font-bold text-green-700">IA-RECIPE-FINDER</span>
+            </motion.div>
+          </Link>
         </div>
         <ul className="flex flex-col items-center md:items-start gap-8">
           <Link href={"/dashboard"} className="flex items-center gap-3 group">
